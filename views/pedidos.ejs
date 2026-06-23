@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pedidos</title>
+</head>
+<body>
+    <h1>Pedidos</h1>
+    
+    <h2>Agregar Pedido</h2>
+    <form action="/pedidos" method="POST">
+        <input type="text" name="clienteId" placeholder="ID del Cliente" required>
+        <input type="text" name="productoId" placeholder="ID del Producto" required>
+        <input type="number" name="cantidad" placeholder="Cantidad" required>
+        <button type="submit">Guardar</button>
+    </form>
+
+    <h2>Lista de Pedidos</h2>
+    <ul>
+        <% pedidos.forEach(p => { %>
+            <li>
+                Cliente ID: <%= p.clienteId %> - Producto ID: <%= p.productoId %> - Cantidad: <%= p.cantidad %> - Fecha: <%= p.fecha %>
+            </li>
+        <% }) %>
+    </ul>
+</body>
+</html>

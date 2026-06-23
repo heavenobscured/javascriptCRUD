@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mi apps</title>
+</head>
+<body>
+    <h1> projecto de integracion con MongoDB </h1>
+ 
+    <h2> agregar cliente </h2>
+    <form action="/clientes" method="POST">
+        <input type="text" name="nombre" placeholder="nombre completo" required>
+        <input type="email" name="email" placeholder="correo" required>
+        <input type="text" name="calle" placeholder="calle" required>
+        <input type="number" name="telefono" placeholder="numero" required>
+        <input type="text" name="comuna" placeholder="comuna" required>
+        <input type="text" name="ciudad" placeholder="ciudad" required>
+        <button type="submit">enviar!</button>
+    </form>
+    <h2> lista de clientes </h2>
+    <ul>
+        <% clientes.forEach(c => { %>
+            <li>
+                <strong><%= c.nombre %></strong> - <%= c.email %>
+                <br>direccion: <%= c.direccion.calle %> <%= c.direccion.numero %>,
+                <%= c.direccion.comuna %>, <%= c.direccion.ciudad %>
+                <button onclick="eliminar('<%= c._id %>')">eliminar</button>
+            </li>)
+        <% }) %>
+    </ul>
+
+    <script>
+        async function eliminar(id) {
+            if(confirm('eliminar?')) {
+                await fetch ('/clientes/${id}', {method: 'DELETE'})
+                location.reload()
+            }
+        }
+    </script>
+    
+</body>
+</html>
