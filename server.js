@@ -1,3 +1,6 @@
+require('dotenv').config()
+
+
 const express = require('express')
 const bodyParser = require('body-parser')
 const { ObjectId } = require('mongodb')
@@ -222,7 +225,7 @@ app.post('/pedidos', async (req, res) => {
     }
 })
 // Conectar a MongoDB y LUEGO iniciar el servidor
-MongoClient.connect('mongodb+srv://heavenobscured_db_user:kXYKarXnGNAGWPFq@clustereval04.km0nlzx.mongodb.net/?appName=ClusterEval04')
+MongoClient.connect(process.env.MONGO_URI)
     .then(client => {
         db = client.db('comercioTech')
         console.log(' te conectaste a MongoDB')
