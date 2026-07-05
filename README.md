@@ -42,8 +42,7 @@ Antes de empezar, asegúrate de tener instalado:
 4. **Ejecutar el proyecto**
 
    ```bash
-   node app.js
-   ```
+   npm run dev   ```
 
    Si todo salió bien, deberías ver en la consola:
 
