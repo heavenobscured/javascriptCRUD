@@ -4,30 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <style>
+        body {
+            background: linear-gradient(rgba(3, 7, 18, 0.82), rgba(3, 7, 18, 0.82)),
+                        url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+            min-height: 100vh;
+        }
+
+        .card-dark {
+            background: rgba(10, 20, 35, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+    </style>
     <title>hola</title>
 </head>
-<body>
+<body class="text-light">
 
-    <div class="container bg-primary-subtle">
-        <h1> projecto de integracion con MongoDB </h1>
-        <h2> este proyecto esta hecho para demostrar como integrar una base de datos de MongoDB con un lenguaje de programacion</h2>
-        <p> en este caso, es javascript!</p>
-        <ul>
-            <li><a href="/clientes">gestionar clientes</a></li>
-            <li><a href="/pedidos">gestionar pedidos</a></li>
-            <li><a href="/productos">gestionar productos</a></li>
+    <div class="container py-5">
+        <div class="jumbotron shadow-lg rounded border card-dark">
+            <h1 class="display-4 font-weight-bold text-info">Proyecto de integración con MongoDB</h1>
+            <p class="lead text-light">Este proyecto demuestra cómo integrar una base de datos de MongoDB con JavaScript.</p>
+            <hr class="my-4 border-secondary">
+            <p class="text-secondary">Desde aquí puedes acceder a las secciones principales del sistema.</p>
 
-
-
-        </ul>
-    
- 
-
-
-        <form action="/clientes" method="POST">
-
-
-
+            <div class="d-flex flex-column flex-md-row">
+                <a href="/clientes" class="btn btn-secondary btn-lg mr-3 mb-3 mb-md-0">Gestionar clientes</a>
+                <a href="/pedidos" class="btn btn-secondary btn-lg mr-3 mb-3 mb-md-0">Gestionar pedidos</a>
+                <a href="/productos" class="btn btn-secondary btn-lg">Gestionar productos</a>
+            </div>
+        </div>
     </div>
     
     <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>

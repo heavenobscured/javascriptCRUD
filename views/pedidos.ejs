@@ -1,26 +1,194 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Pedidos</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <style>
+        body {
+            background: linear-gradient(rgba(3, 7, 18, 0.82), rgba(3, 7, 18, 0.82)),
+                        url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+            min-height: 100vh;
+            color: #f8f9fa;
+        }
+
+        .card-dark {
+            background: rgba(10, 20, 35, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .linea-producto {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 0.25rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .linea-producto select,
+        .linea-producto input {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+    <title>Gestión de pedidos</title>
 </head>
 <body>
-    <h1>Pedidos</h1>
-    
-    <h2>Agregar Pedido</h2>
-    <form action="/pedidos" method="POST">
-        <input type="text" name="clienteId" placeholder="ID del Cliente" required>
-        <input type="text" name="productoId" placeholder="ID del Producto" required>
-        <input type="number" name="cantidad" placeholder="Cantidad" required>
-        <button type="submit">Guardar</button>
-    </form>
+    <div class="container py-5">
+        <div class="card card-dark shadow-lg rounded p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="display-4 font-weight-bold text-success">Gestión de pedidos</h1>
+                    <p class="lead text-light">Registra y visualiza los pedidos del sistema.</p>
+                </div>
+                <a href="/" class="btn btn-outline-light">Volver al inicio</a>
+            </div>
 
-    <h2>Lista de Pedidos</h2>
-    <ul>
-        <% pedidos.forEach(p => { %>
-            <li>
-                Cliente ID: <%= p.clienteId %> - Producto ID: <%= p.productoId %> - Cantidad: <%= p.cantidad %> - Fecha: <%= p.fecha %>
-            </li>
-        <% }) %>
-    </ul>
+            <div class="row">
+                <div class="col-lg-5 mb-4">
+                    <h3 class="text-light mb-3">Agregar pedido</h3>
+                    <form id="formPedido" action="/pedidos" method="POST">
+                        <div class="form-group">
+                            <label for="clienteId">Cliente</label>
+                            <select class="form-control" id="clienteId" name="clienteId" required>
+                                <option value="" disabled selected>-- selecciona un cliente --</option>
+                                <% clientes.forEach(c => { %>
+                                    <option value="<%= c._id %>"><%= c.nombre %> (<%= c.email %>)</option>
+                                <% }) %>
+                            </select>
+                        </div>
+
+                        <label>Productos</label>
+                        <div id="lineasProductos"></div>
+                        <button type="button" class="btn btn-outline-light btn-sm mb-3" onclick="agregarLinea()">+ Agregar producto</button>
+
+                        <!-- este input viaja como texto y el servidor lo interpreta con JSON.parse -->
+                        <input type="hidden" name="productos" id="productosJson">
+
+                        <button type="submit" class="btn btn-success btn-block">Guardar pedido</button>
+                    </form>
+                </div>
+
+                <div class="col-lg-7">
+                    <h3 class="text-light mb-3">Lista de pedidos</h3>
+                    <ul class="list-group">
+                        <% pedidos.forEach(p => { %>
+                            <li class="list-group-item list-group-item-dark">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>Cliente:</strong>
+                                        <%= p.cliente && p.cliente[0] ? p.cliente[0].nombre : 'cliente no encontrado' %>
+                                        <ul class="mb-1">
+                                            <% p.productos.forEach(item => { %>
+                                                <%
+                                                    const detalle = p.detallesProductos.find(
+                                                        d => String(d._id) === String(item.productoId)
+                                                    )
+                                                %>
+                                                <li>
+                                                    <%= detalle ? detalle.nombre : 'producto no encontrado' %>
+                                                    - cantidad: <%= item.cantidad %>
+                                                    <% if (detalle) { %>
+                                                        - subtotal: $<%= (detalle.precio * item.cantidad).toFixed(2) %>
+                                                    <% } %>
+                                                </li>
+                                            <% }) %>
+                                        </ul>
+                                        <small class="text-muted">
+                                            Total: $<%= p.total.toFixed(2) %>
+                                            &nbsp;|&nbsp; Estado: <%= p.estado %>
+                                            &nbsp;|&nbsp; Fecha: <%= new Date(p.fechaPedido).toLocaleString() %>
+                                        </small>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPedido('<%= p._id %>')">Eliminar</button>
+                                </div>
+                            </li>
+                        <% }) %>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- datos que vienen del servidor, en un bloque separado del JS -->
+    <script type="application/json" id="productos-data"><%- JSON.stringify(productos.map(p => ({
+        id: p._id.toString(),
+        nombre: p.nombre,
+        precio: p.precio,
+        stock: p.stock
+    }))) %></script>
+
+    <script>
+        //leemos los datos desde el bloque de arriba: este script ya es JS puro, sin tags EJS mezclados
+        const productosDisponibles = JSON.parse(document.getElementById('productos-data').textContent)
+
+        function agregarLinea() {
+            const contenedor = document.getElementById('lineasProductos')
+            const fila = document.createElement('div')
+            fila.className = 'linea-producto'
+
+            const select = document.createElement('select')
+            select.className = 'form-control select-producto'
+            productosDisponibles.forEach(p => {
+                const option = document.createElement('option')
+                option.value = p.id
+                option.text = `${p.nombre} - $${p.precio} (stock: ${p.stock})`
+                select.appendChild(option)
+            })
+
+            const inputCantidad = document.createElement('input')
+            inputCantidad.type = 'number'
+            inputCantidad.min = '1'
+            inputCantidad.value = '1'
+            inputCantidad.className = 'form-control input-cantidad'
+            inputCantidad.placeholder = 'cantidad'
+
+            const btnQuitar = document.createElement('button')
+            btnQuitar.type = 'button'
+            btnQuitar.className = 'btn btn-outline-danger btn-sm'
+            btnQuitar.textContent = 'Quitar'
+            btnQuitar.onclick = () => fila.remove()
+
+            fila.appendChild(select)
+            fila.appendChild(inputCantidad)
+            fila.appendChild(btnQuitar)
+            contenedor.appendChild(fila)
+        }
+
+        //arrancamos con una linea de producto ya visible
+        agregarLinea()
+
+        async function eliminarPedido(id) {
+            if (!confirm('¿Eliminar este pedido? Esto devuelve el stock de los productos.')) {
+                return
+            }
+            const respuesta = await fetch(`/pedidos/${id}`, { method: 'DELETE' })
+            if (!respuesta.ok) {
+                alert('No se pudo eliminar el pedido')
+                return
+            }
+            location.reload()
+        }
+
+        //antes de enviar el formulario armamos el array de productos como JSON
+        document.getElementById('formPedido').addEventListener('submit', (e) => {
+            const filas = document.querySelectorAll('.linea-producto')
+            const items = []
+            filas.forEach(fila => {
+                const productoId = fila.querySelector('.select-producto').value
+                const cantidad = parseInt(fila.querySelector('.input-cantidad').value)
+                if (productoId && cantidad > 0) {
+                    items.push({ productoId: productoId, cantidad: cantidad })
+                }
+            })
+
+            if (items.length === 0) {
+                e.preventDefault()
+                alert('Agrega al menos un producto al pedido')
+                return
+            }
+
+            document.getElementById('productosJson').value = JSON.stringify(items)
+        })
+    </script>
 </body>
 </html>

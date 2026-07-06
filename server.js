@@ -180,6 +180,7 @@ app.delete('/productos/:id', async (req, res) => {
     }
 })
 //GET de pedidos
+//tambien manda clientes y productos para poder armar el carrito en el formulario
 app.get('/pedidos', async (req, res) => {
     try {
         const pedidos = await db.collection('pedidos').aggregate([
@@ -198,30 +199,127 @@ app.get('/pedidos', async (req, res) => {
                     foreignField: '_id',
                     as: 'detallesProductos'
                 }
-            }
+            },
+            { $sort: { fechaPedido: -1 } }
         ]).toArray()
-        
-        res.render('pedidos.ejs', { pedidos: pedidos })
+
+        const clientes = await db.collection('clientes').find().toArray()
+        const productos = await db.collection('productos').find().toArray()
+
+        res.render('pedidos.ejs', { pedidos: pedidos, clientes: clientes, productos: productos })
     } catch (err) {
         console.error(err)
         res.status(500).send('Error al cargar pedidos')
     }
 })
 //POST de pedidos
+//Acepta uno o varios productos por pedido. req.body.productos debe ser un
+//array (JSON) del tipo: [{ productoId: "...", cantidad: 2 }, ...]
+//El total NUNCA se recibe del cliente: siempre se calcula en el servidor.
 app.post('/pedidos', async (req, res) => {
     try {
+        //el cliente es obligatorio
+        if (!req.body.clienteId) {
+            return res.status(400).send('Falta el cliente para este pedido')
+        }
+        const clienteId = new ObjectId(req.body.clienteId)
+
+        const cliente = await db.collection('clientes').findOne({ _id: clienteId })
+        if (!cliente) {
+            return res.status(404).send('Cliente no encontrado')
+        }
+
+        //normalizar la lista de productos: acepta array ya parseado (JSON body)
+        //o un string JSON (form-urlencoded), para no romper distintos clientes/formularios
+        let itemsSolicitados = req.body.productos
+        if (typeof itemsSolicitados === 'string') {
+            try {
+                itemsSolicitados = JSON.parse(itemsSolicitados)
+            } catch (parseErr) {
+                return res.status(400).send('Formato invalido en productos')
+            }
+        }
+        if (!Array.isArray(itemsSolicitados) || itemsSolicitados.length === 0) {
+            return res.status(400).send('El pedido debe incluir al menos un producto')
+        }
+
+        //validar cada item y armar los detalles del pedido
+        const detallesPedido = []
+        let total = 0
+
+        for (const item of itemsSolicitados) {
+            if (!item.productoId || !item.cantidad) {
+                return res.status(400).send('Cada producto necesita productoId y cantidad')
+            }
+
+            const productoId = new ObjectId(item.productoId)
+            const cantidad = parseInt(item.cantidad)
+
+            if (isNaN(cantidad) || cantidad <= 0) {
+                return res.status(400).send('Cantidad invalida para uno de los productos')
+            }
+
+            const producto = await db.collection('productos').findOne({ _id: productoId })
+            if (!producto) {
+                return res.status(404).send(`Producto no encontrado: ${item.productoId}`)
+            }
+            if (producto.stock < cantidad) {
+                return res.status(400).send(`Stock insuficiente para: ${producto.nombre}`)
+            }
+
+            detallesPedido.push({ productoId: productoId, cantidad: cantidad })
+            total += producto.precio * cantidad
+        }
+
         const pedido = {
-            clienteId: new ObjectId(req.body.clienteId),
-            productos: JSON.parse(req.body.productos),
-            total: parseFloat(req.body.total),
+            clienteId: clienteId,
+            productos: detallesPedido,
+            total: total,
             estado: 'pendiente',
             fechaPedido: new Date()
         }
+
         await db.collection('pedidos').insertOne(pedido)
+
+        //descontar stock de cada producto involucrado
+        for (const item of detallesPedido) {
+            await db.collection('productos').updateOne(
+                { _id: item.productoId },
+                { $inc: { stock: -item.cantidad } }
+            )
+        }
+
         res.redirect('/pedidos')
     } catch (err) {
         console.error(err)
         res.status(500).send('Error al guardar pedido')
+    }
+})
+//Delete de pedido
+//al cancelar/borrar un pedido, devolvemos el stock que se habia descontado
+app.delete('/pedidos/:id', async (req, res) => {
+    try {
+        const pedidoId = new ObjectId(req.params.id)
+
+        const pedido = await db.collection('pedidos').findOne({ _id: pedidoId })
+        if (!pedido) {
+            return res.status(404).json({ success: false, message: 'Pedido no encontrado' })
+        }
+
+        //devolver el stock de cada producto del pedido
+        for (const item of pedido.productos) {
+            await db.collection('productos').updateOne(
+                { _id: item.productoId },
+                { $inc: { stock: item.cantidad } }
+            )
+        }
+
+        await db.collection('pedidos').deleteOne({ _id: pedidoId })
+
+        res.json({ success: true })
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({ success: false })
     }
 })
 // Conectar a MongoDB y LUEGO iniciar el servidor
