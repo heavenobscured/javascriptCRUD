@@ -99,7 +99,20 @@
                                             &nbsp;|&nbsp; Fecha: <%= new Date(p.fechaPedido).toLocaleString() %>
                                         </small>
                                     </div>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarPedido('<%= p._id %>')">Eliminar</button>
+                                    <div class="text-right">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="toggleEditarEstado('<%= p._id %>')">Editar estado</button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="eliminarPedido('<%= p._id %>')">Eliminar</button>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2 d-none" id="form-estado-<%= p._id %>" style="display:flex;">
+                                    <select class="form-control form-control-sm mr-2" id="select-estado-<%= p._id %>">
+                                        <option value="pendiente" <%= p.estado === 'pendiente' ? 'selected' : '' %>>Pendiente</option>
+                                        <option value="procesando" <%= p.estado === 'procesando' ? 'selected' : '' %>>Procesando</option>
+                                        <option value="completado" <%= p.estado === 'completado' ? 'selected' : '' %>>Completado</option>
+                                        <option value="cancelado" <%= p.estado === 'cancelado' ? 'selected' : '' %>>Cancelado</option>
+                                    </select>
+                                    <button class="btn btn-sm btn-primary" onclick="guardarEstado('<%= p._id %>')">Guardar</button>
                                 </div>
                             </li>
                         <% }) %>
@@ -156,6 +169,25 @@
 
         //arrancamos con una linea de producto ya visible
         agregarLinea()
+
+        function toggleEditarEstado(id) {
+            const el = document.getElementById(`form-estado-${id}`);
+            el.classList.toggle('d-none');
+        }
+
+        async function guardarEstado(id) {
+            const nuevoEstado = document.getElementById(`select-estado-${id}`).value;
+            const respuesta = await fetch(`/pedidos/${id}/estado`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (!respuesta.ok) {
+                alert('No se pudo actualizar el estado');
+                return;
+            }
+            location.reload();
+        }
 
         async function eliminarPedido(id) {
             if (!confirm('¿Eliminar este pedido? Esto devuelve el stock de los productos.')) {

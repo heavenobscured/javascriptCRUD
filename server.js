@@ -295,6 +295,23 @@ app.post('/pedidos', async (req, res) => {
         res.status(500).send('Error al guardar pedido')
     }
 })
+//actualizar solo el estado de un pedido
+app.put('/pedidos/:id/estado', async (req, res) => {
+    try {
+        const estadosValidos = ['pendiente', 'procesando', 'completado', 'cancelado']
+        if (!estadosValidos.includes(req.body.estado)) {
+            return res.status(400).json({ success: false, message: 'Estado invalido' })
+        }
+        await db.collection('pedidos').updateOne(
+            { _id: new ObjectId(req.params.id) },
+            { $set: { estado: req.body.estado } }
+        )
+        res.json({ success: true })
+    } catch (err) {
+        console.error(err)
+        res.status(500).json({ success: false })
+    }
+})
 //Delete de pedido
 //al cancelar/borrar un pedido, devolvemos el stock que se habia descontado
 app.delete('/pedidos/:id', async (req, res) => {
